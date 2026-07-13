@@ -1,0 +1,6 @@
+{
+  "name": "Lydia Ugochi Portfolio",
+  "description": "Academic and creative portfolio of Lydia Ugochi, a PharmD student, public speaker, and writer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
