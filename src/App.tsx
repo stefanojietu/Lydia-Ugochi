@@ -76,11 +76,26 @@ export default function App() {
   const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [modalKey, setModalKey] = useState<keyof typeof MODAL_CONTENT | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileScrollY, setMobileScrollY] = useState(0);
 
-  // Monitor scroll state for styling navbar
+  // Monitor resize to detect mobile/tablet screens
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Monitor scroll state for styling navbar and parallax hero effects
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 50) {
+      const currentScrollY = window.scrollY;
+      setMobileScrollY(currentScrollY);
+
+      if (currentScrollY > 50) {
         setScrolled(true);
       } else {
         setScrolled(false);
@@ -255,25 +270,46 @@ export default function App() {
       <main className="pt-20">
         
         {/* Hero Section */}
-        <section id="home" className="relative overflow-hidden min-h-[90vh] flex items-center">
-          {/* Background image on desktop (right-aligned, grayscale, high contrast) */}
-          <div className="absolute right-0 top-0 w-1/2 h-full hidden lg:block">
+        <section 
+          id="home" 
+          className="relative overflow-hidden min-h-[90vh] flex items-end pb-12 lg:items-center lg:pb-0"
+        >
+          {/* Background image: Fixed viewport-level positioning on mobile (zero javascript scroll-lag/stutter), right-aligned absolute positioning on desktop */}
+          <div 
+            className={`${
+              isMobile 
+                ? "fixed inset-0 w-full h-full z-0" 
+                : "absolute inset-0 lg:left-1/2 lg:w-1/2 h-full w-full z-0"
+            }`}
+          >
             <div 
-              className="w-full h-full bg-cover bg-center grayscale contrast-125 brightness-[0.9] transition-all duration-700 hover:scale-[1.02]" 
+              className="w-full h-full bg-cover bg-center grayscale contrast-125 transition-all duration-700 hover:scale-[1.01]" 
               style={{ 
-                backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCvSST8x5iGtGZfYZUkOUcDIpT6Ox5yaqEcql1_NAQBnXuj-TAXVWYX70KsB8Dm4rsp7Hzvc3bMqQLYryFtHuQa-_-YYRr_YZrSYgMadkR-VCF48KoPQvVi0lGPe_6A9vDzq0IAVsmMB2LTtpNBix7Iz29utiIMC7itOx7l58WPMt_114j0YyLw6Voi6R4Nj8bf6i0GYA-Uj8JI0zooWISRiuzKkhA4lIwP3Dbp9DUolgiIfLq0cyfviS1Ce-W0EtWG4DQU1b08oFAQ")' 
+                backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCvSST8x5iGtGZfYZUkOUcDIpT6Ox5yaqEcql1_NAQBnXuj-TAXVWYX70KsB8Dm4rsp7Hzvc3bMqQLYryFtHuQa-_-YYRr_YZrSYgMadkR-VCF48KoPQvVi0lGPe_6A9vDzq0IAVsmMB2LTtpNBix7Iz29utiIMC7itOx7l58WPMt_114j0YyLw6Voi6R4Nj8bf6i0GYA-Uj8JI0zooWISRiuzKkhA4lIwP3Dbp9DUolgiIfLq0cyfviS1Ce-W0EtWG4DQU1b08oFAQ")',
+                filter: isMobile 
+                  ? `grayscale(100%) contrast(125%) brightness(${0.92 - Math.min(mobileScrollY / 220, 1) * 0.17}) blur(${Math.min(mobileScrollY / 220, 1) * 12}px)` 
+                  : 'grayscale(100%) contrast(125%) brightness(0.9)'
               }}
             />
-            {/* Elegant vignette overlay */}
-            <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-transparent pointer-events-none" />
+            {/* Elegant vignette overlay that guarantees typography is highly legible */}
+            <div 
+              className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/75 to-background/95 lg:bg-gradient-to-r lg:from-background lg:via-transparent lg:to-transparent pointer-events-none transition-opacity duration-300" 
+              style={isMobile ? { opacity: 0.15 + Math.min(mobileScrollY / 220, 1) * 0.85 } : undefined}
+            />
           </div>
 
           <div className="max-w-[1200px] mx-auto px-5 md:px-6 w-full relative z-10">
-            <div className="lg:w-7/12">
+            <div className="lg:w-7/12 flex flex-col justify-end min-h-[60vh] lg:min-h-0">
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
+                style={isMobile ? { 
+                  opacity: Math.min(mobileScrollY / 220, 1), 
+                  maxHeight: `${Math.min(mobileScrollY / 220, 1) * 48}px`,
+                  transform: `translateY(${(1 - Math.min(mobileScrollY / 220, 1)) * 20}px)`,
+                  overflow: 'hidden'
+                } : undefined}
               >
                 <span className="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container font-sans text-xs font-semibold uppercase tracking-widest mb-6 rounded-sm shadow-sm">
                   Academic Portfolio
@@ -284,7 +320,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.1 }}
-                className="font-serif text-[42px] leading-[1.1] md:text-6xl font-bold text-primary mb-6 tracking-tight text-balance"
+                className="font-serif text-[42px] leading-[1.1] md:text-6xl font-bold text-primary mb-6 lg:mb-6 tracking-tight text-balance"
               >
                 Lydia <span className="text-secondary italic font-normal">Ugochi</span>
               </motion.h1>
@@ -293,27 +329,29 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
-                className="font-sans text-lg text-on-surface-variant max-w-lg mb-10 leading-relaxed text-balance"
+                className="font-sans text-lg text-on-surface-variant max-w-lg leading-relaxed text-balance"
+                style={isMobile ? { 
+                  opacity: Math.min(mobileScrollY / 220, 1), 
+                  maxHeight: `${Math.min(mobileScrollY / 220, 1) * 180}px`, 
+                  transform: `translateY(${(1 - Math.min(mobileScrollY / 220, 1)) * 15}px)`,
+                  overflow: 'hidden',
+                  marginBottom: `${Math.min(mobileScrollY / 220, 1) * 2.5}rem`
+                } : { marginBottom: '2.5rem' }}
               >
                 PharmD Student | Aspiring Healthcare Professional | Creative Writer. Bridging the gap between pharmaceutical excellence and public health advocacy through academic rigour and creative storytelling.
               </motion.p>
               
-              {/* Mobile Hero Image */}
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.25 }}
-                className="w-full aspect-[4/3] rounded-sm bg-cover bg-center grayscale contrast-125 mb-8 lg:hidden shadow-lg"
-                style={{ 
-                  backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCvSST8x5iGtGZfYZUkOUcDIpT6Ox5yaqEcql1_NAQBnXuj-TAXVWYX70KsB8Dm4rsp7Hzvc3bMqQLYryFtHuQa-_-YYRr_YZrSYgMadkR-VCF48KoPQvVi0lGPe_6A9vDzq0IAVsmMB2LTtpNBix7Iz29utiIMC7itOx7l58WPMt_114j0YyLw6Voi6R4Nj8bf6i0GYA-Uj8JI0zooWISRiuzKkhA4lIwP3Dbp9DUolgiIfLq0cyfviS1Ce-W0EtWG4DQU1b08oFAQ")' 
-                }}
-              />
-
               <motion.div 
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.3 }}
                 className="flex flex-col sm:flex-row gap-4"
+                style={isMobile ? { 
+                  opacity: Math.min(mobileScrollY / 220, 1), 
+                  maxHeight: `${Math.min(mobileScrollY / 220, 1) * 120}px`, 
+                  transform: `translateY(${(1 - Math.min(mobileScrollY / 220, 1)) * 10}px)`,
+                  overflow: 'hidden'
+                } : undefined}
               >
                 <button 
                   onClick={() => handleScrollTo('pillars')}
@@ -336,7 +374,7 @@ export default function App() {
         </section>
 
         {/* About Section */}
-        <section id="about" className="py-24 bg-surface-container-lowest">
+        <section id="about" className="py-24 bg-surface-container-lowest relative z-10">
           <div className="max-w-[1200px] mx-auto px-5 md:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
               
@@ -392,7 +430,7 @@ export default function App() {
         </section>
 
         {/* Core Pillars Section (Bento Grid) */}
-        <section id="pillars" className="py-24 bg-background">
+        <section id="pillars" className="py-24 bg-background relative z-10">
           <div className="max-w-[1200px] mx-auto px-5 md:px-6 mb-16 text-center">
             <h2 className="font-serif text-3xl md:text-4xl font-bold text-primary mb-4">Core Pillars</h2>
             <p className="font-sans text-base text-on-surface-variant max-w-2xl mx-auto">
@@ -509,7 +547,7 @@ export default function App() {
         </section>
 
         {/* Connection Section */}
-        <section className="py-16 bg-secondary-fixed text-on-secondary-fixed relative overflow-hidden">
+        <section className="py-16 bg-secondary-fixed text-on-secondary-fixed relative overflow-hidden z-10">
           <div className="max-w-[1200px] mx-auto px-5 md:px-6 text-center relative z-10">
             <h2 className="font-serif text-3xl font-bold mb-4">Let's Connect in Lagos</h2>
             <p className="font-sans text-base mb-8 max-w-xl mx-auto opacity-90 leading-relaxed">
@@ -537,7 +575,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer id="footer" className="w-full mt-24 bg-surface-container-low border-t border-outline-variant/30">
+      <footer id="footer" className="w-full mt-24 bg-surface-container-low border-t border-outline-variant/30 relative z-10">
         <div className="max-w-[1200px] mx-auto px-5 md:px-6 py-16 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex flex-col items-center md:items-start gap-3">
             <h2 className="font-serif text-2xl font-bold text-primary tracking-tight">LYDIA UGOCHI</h2>
